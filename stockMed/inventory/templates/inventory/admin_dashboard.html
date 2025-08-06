@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Admin Dashboard</h2>
+
+  <!-- Existing Low Stock & Expiry Cards -->
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card border-warning mb-3">
+        <div class="card-header bg-warning text-dark">Low Stock</div>
+        <div class="card-body">
+          <h5 class="card-title">{{ low_stock_count }} product(s)</h5>
+          <ul class="list-group list-group-flush">
+            {% for product in low_stock_products %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ product.name }}
+                <span class="badge bg-danger">{{ product.quantity_in_stock }}</span>
+              </li>
+            {% empty %}
+              <li class="list-group-item">No low stock items.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card border-danger mb-3">
+        <div class="card-header bg-danger text-white">Expiring Soon</div>
+        <div class="card-body">
+          <h5 class="card-title">{{ near_expiry_count }} product(s)</h5>
+          <ul class="list-group list-group-flush">
+            {% for product in near_expiry_products %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ product.name }}
+                <span class="badge bg-warning text-dark">{{ product.expiry_date }}</span>
+              </li>
+            {% empty %}
+              <li class="list-group-item">No expiring items.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="row mt-5">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Product Quantity by Category</div>
+        <div class="card-body">
+          <canvas id="categoryChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Stock Status</div>
+        <div class="card-body">
+          <canvas id="stockChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/javascript">
+  const categoryLabels = JSON.parse('{{ category_labels|safe|escapejs }}');
+  const categoryValues = JSON.parse('{{ category_values|safe|escapejs }}');
+  const lowStockCount = JSON.parse('{{ low_stock_count_chart|safe|escapejs }}');
+  const inStockCount = JSON.parse('{{ in_stock_count_chart|safe|escapejs }}');
+
+  const categoryChart = new Chart(document.getElementById('categoryChart'), {
+    type: 'bar',
+    data: {
+      labels: categoryLabels,
+      datasets: [{
+        label: 'Quantity',
+        data: categoryValues,
+        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  });
+
+  const stockChart = new Chart(document.getElementById('stockChart'), {
+    type: 'pie',
+    data: {
+      labels: ['Low Stock', 'In Stock'],
+      datasets: [{
+        data: [lowStockCount, inStockCount],
+        backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(75, 192, 192, 0.7)']
+      }]
+    },
+    options: { responsive: true }
+  });
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Products</h2>
+  {% if user.role == 'admin' %}
+    <a href="{% url 'inventory:product_create' %}" class="btn btn-success mb-3">+ Add Product</a>
+  {% endif %}
+  <div class="mb-3 text-end">
+   <a href="{% url 'inventory:product_export' %}" class="btn btn-outline-success">Export CSV</a>
+   <a href="{% url 'inventory:product_import' %}" class="btn btn-outline-primary">Import CSV</a>
+  </div>
+
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search product name">
+    </div>
+    <div class="col-md-2">
+      <select name="category" class="form-select">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="supplier" class="form-select">
+        <option value="">All Suppliers</option>
+        {% for sup in suppliers %}
+          <option value="{{ sup.id }}" {% if selected_supplier == sup.id|stringformat:"s" %}selected{% endif %}>{{ sup.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="expiry" class="form-select">
+        <option value="">Expiry</option>
+        <option value="1" {% if expiry == '1' %}selected{% endif %}>Expiring ≤ 30 days</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="low_stock" class="form-select">
+        <option value="">Stock</option>
+        <option value="1" {% if low_stock == '1' %}selected{% endif %}>Low Stock</option>
+      </select>
+    </div>
+    <div class="col-md-1">
+      <button class="btn btn-primary w-100" type="submit">Filter</button>
+    </div>
+  </form>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Suppliers</th>
+        <th>Batch #</th>
+        <th>Qty</th>
+        <th>Reorder Level</th>
+        <th>Price</th>
+        <th>Expiry</th>
+        <th>Status</th>
+        {% if user.role == 'admin' %}<th>Actions</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td>{{ product.name }}</td>
+        <td>{{ product.category.name }}</td>
+        <td>
+          {% for supplier in product.suppliers.all %}
+            {{ supplier.name }}{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        </td>
+        <td>{{ product.batch_number }}</td>
+        <td>{{ product.quantity_in_stock }}</td>
+        <td>{{ product.reorder_level }}</td>
+        <td>${{ product.unit_price }}</td>
+        <td>{{ product.expiry_date }}</td>
+        <td>
+          {% if product.is_expiring_soon %}<span class="badge bg-warning text-dark">Expiring Soon</span>{% endif %}
+          {% if product.is_low_stock %}<span class="badge bg-danger">Low Stock</span>{% endif %}
+        </td>
+        {% if user.role == 'admin' %}
+        <td>
+          <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-primary">Edit</a>
+          <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-sm btn-danger">Delete</a>
+        </td>
+        {% endif %}
+      </tr>
+      {% empty %}
+      <tr><td colspan="10">No products available.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

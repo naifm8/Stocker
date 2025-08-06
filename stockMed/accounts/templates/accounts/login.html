@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login | StockMed{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 400px;">
+  <h2 class="mb-4 text-center">Login to StockMed</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="mb-3">
+      <label for="id_username" class="form-label">Username</label>
+      {{ form.username|add_class:"form-control" }}
+    </div>
+
+    <div class="mb-3">
+      <label for="id_password" class="form-label">Password</label>
+      {{ form.password|add_class:"form-control" }}
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">Login</button>
+  </form>
+</div>
+{% endblock %}
