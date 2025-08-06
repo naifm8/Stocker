@@ -19,8 +19,11 @@ def is_employee(user):
     return user.is_authenticated and user.role == 'employee'
 
 
-'''ADMIN LOGICS (DASHBOARD)'''
+def public_home(request):
+    return render(request, 'inventory/home.html')
 
+
+'''ADMIN LOGICS (DASHBOARD)'''
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
