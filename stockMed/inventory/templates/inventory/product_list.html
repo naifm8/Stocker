@@ -77,6 +77,7 @@
         <td>{{ product.reorder_level }}</td>
         <td>${{ product.unit_price }}</td>
         <td>{{ product.expiry_date }}</td>
+        <td><a href="{% url 'inventory:product_detail' product.pk %}" class="btn btn-sm btn-outline-info">Details</a></td>
         <td>
           {% if product.is_expiring_soon %}<span class="badge bg-warning text-dark">Expiring Soon</span>{% endif %}
           {% if product.is_low_stock %}<span class="badge bg-danger">Low Stock</span>{% endif %}

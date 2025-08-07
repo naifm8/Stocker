@@ -100,6 +100,7 @@ def category_delete(request, pk):
     category = get_object_or_404(Category, pk=pk)
     if request.method == 'POST':
         category.delete()
+        messages.success(request, "Category deleted successfully.")
         return redirect('inventory:category_list')
     return render(request, 'inventory/category_confirm_delete.html', {'category': category})
 
@@ -142,6 +143,7 @@ def supplier_delete(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     if request.method == 'POST':
         supplier.delete()
+        messages.success(request, "Supplier deleted successfully.")
         return redirect('inventory:supplier_list')
     return render(request, 'inventory/supplier_confirm_delete.html', {'supplier': supplier})
 
@@ -222,10 +224,9 @@ def product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':
         product.delete()
+        messages.success(request, "Product deleted successfully.")
         return redirect('inventory:product_list')
     return render(request, 'inventory/product_confirm_delete.html', {'product': product})
-
-
 
 @login_required
 @user_passes_test(is_admin)
@@ -270,3 +271,25 @@ def import_products(request):
         return redirect('inventory:product_list')
 
     return render(request, 'inventory/product_import.html')
+
+
+''' DETAIL PAGES (PRODUCTS-CATEGORYS-SUPPLIERS)'''
+@login_required
+def product_detail(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    return render(request, 'inventory/product_detail.html', {'product': product})
+
+@login_required
+def supplier_detail(request, pk):
+    supplier = get_object_or_404(Supplier, pk=pk)
+    products = supplier.products.all()
+    return render(request, 'inventory/supplier_detail.html', {
+        'supplier': supplier,
+        'products': products
+    })
+
+@login_required
+def category_detail(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    return render(request, 'inventory/category_detail.html', {'category': category})
+

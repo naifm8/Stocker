@@ -19,6 +19,7 @@
         <td>{{ supplier.name }}</td>
         <td>{{ supplier.email }}</td>
         <td>{{ supplier.phone }}</td>
+        <td><a href="{% url 'inventory:supplier_detail' supplier.pk %}" class="btn btn-sm btn-outline-info">Details</a></td>
         <td><a href="{{ supplier.website }}" target="_blank">{{ supplier.website }}</a></td>
         <td>
           <a href="{% url 'inventory:supplier_update' supplier.pk %}" class="btn btn-sm btn-primary">Edit</a>

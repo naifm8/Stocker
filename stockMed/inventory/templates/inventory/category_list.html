@@ -17,6 +17,7 @@
         <td>{{ category.name }}</td>
         <td>{{ category.description }}</td>
         <td>
+          <a href="{% url 'inventory:category_detail' category.pk %}" class="btn btn-sm btn-outline-info">Details</a>
           <a href="{% url 'inventory:category_update' category.pk %}" class="btn btn-sm btn-primary">Edit</a>
           <a href="{% url 'inventory:category_delete' category.pk %}" class="btn btn-sm btn-danger">Delete</a>
         </td>
