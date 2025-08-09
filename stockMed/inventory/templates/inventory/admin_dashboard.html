@@ -65,6 +65,64 @@
     </div>
   </div>
 </div>
+
+<div class="row mt-5">
+  <div class="col-12">
+    <div class="card shadow">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Users Overview</span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width:70px;">Profile</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th class="text-center">Products Assigned</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for emp in employees %}
+              <tr>
+                <td>
+                  {% if emp.profile_image %}
+                    <img src="{{ emp.profile_image.url }}" class="rounded-circle"
+                         style="width:50px;height:50px;object-fit:cover;" alt="{{ emp.username }}">
+                  {% else %}
+                    <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center"
+                         style="width:50px;height:50px;font-size:.75rem;">No img</div>
+                  {% endif %}
+                </td>
+                <td>{{ emp.get_full_name|default:emp.username }}</td>
+                <td><a href="mailto:{{ emp.email }}">{{ emp.email }}</a></td>
+                <td>{{ emp.get_role_display }}</td>
+                <td>
+                  {% if emp.is_active %}
+                    <span class="badge bg-success">Active</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-primary">{{ emp.product_count }}</span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6">No employees found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -99,6 +157,24 @@
       }]
     },
     options: { responsive: true }
+  });
+</script>
+<script type="application/javascript">
+
+  const userLabels = JSON.parse('{{ user_labels|safe|escapejs }}');
+  const userCounts = JSON.parse('{{ user_counts|safe|escapejs }}');
+
+  const usersChart = new Chart(document.getElementById('usersChart'), {
+    type: 'bar',
+    data: {
+      labels: userLabels,
+      datasets: [{
+        label: 'Products Assigned',
+        data: userCounts,
+        borderWidth: 1
+      }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
   });
 </script>
 {% endblock %}

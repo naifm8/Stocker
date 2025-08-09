@@ -47,9 +47,10 @@
     </div>
   </form>
 
-  <table class="table table-bordered table-striped">
+  <table class="table table-bordered table-striped align-middle">
     <thead>
       <tr>
+        <th style="width:70px;">Image</th>
         <th>Name</th>
         <th>Category</th>
         <th>Suppliers</th>
@@ -65,7 +66,17 @@
     <tbody>
       {% for product in products %}
       <tr>
-        <td>{{ product.name }}</td>
+        <td>
+          {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
+          {% else %}
+            <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+                 style="width:60px;height:60px;font-size:.8rem;">No img</div>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'inventory:product_detail' product.pk %}">{{ product.name }}</a>
+        </td>
         <td>{{ product.category.name }}</td>
         <td>
           {% for supplier in product.suppliers.all %}
@@ -77,22 +88,25 @@
         <td>{{ product.reorder_level }}</td>
         <td>${{ product.unit_price }}</td>
         <td>{{ product.expiry_date }}</td>
-        <td><a href="{% url 'inventory:product_detail' product.pk %}" class="btn btn-sm btn-outline-info">Details</a></td>
         <td>
           {% if product.is_expiring_soon %}<span class="badge bg-warning text-dark">Expiring Soon</span>{% endif %}
           {% if product.is_low_stock %}<span class="badge bg-danger">Low Stock</span>{% endif %}
         </td>
         {% if user.role == 'admin' %}
-        <td>
+        <td class="text-nowrap">
           <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-primary">Edit</a>
           <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-sm btn-danger">Delete</a>
+          <a href="{% url 'inventory:product_detail' product.pk %}" class="btn btn-sm btn-outline-info">Details</a>
         </td>
         {% endif %}
       </tr>
       {% empty %}
-      <tr><td colspan="10">No products available.</td></tr>
+      <tr><td colspan="11">No products available.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  
+
+
 </div>
 {% endblock %}

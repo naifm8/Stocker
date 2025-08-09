@@ -3,9 +3,10 @@
 <div class="container mt-4">
   <h2>Suppliers</h2>
   <a href="{% url 'inventory:supplier_create' %}" class="btn btn-success mb-3">+ Add Supplier</a>
-  <table class="table table-bordered">
+  <table class="table table-bordered align-middle">
     <thead>
       <tr>
+        <th style="width:70px;">Image</th>
         <th>Name</th>
         <th>Email</th>
         <th>Phone</th>
@@ -16,20 +17,28 @@
     <tbody>
       {% for supplier in suppliers %}
       <tr>
-        <td>{{ supplier.name }}</td>
+        <td>
+          {% if supplier.image %}
+            <img src="{{ supplier.image.url }}" alt="{{ supplier.name }}" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
+          {% else %}
+            <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+                 style="width:60px;height:60px;font-size:.8rem;">No img</div>
+          {% endif %}
+        </td>
+        <td><a href="{% url 'inventory:supplier_detail' supplier.pk %}">{{ supplier.name }}</a></td>
         <td>{{ supplier.email }}</td>
         <td>{{ supplier.phone }}</td>
-        <td><a href="{% url 'inventory:supplier_detail' supplier.pk %}" class="btn btn-sm btn-outline-info">Details</a></td>
         <td><a href="{{ supplier.website }}" target="_blank">{{ supplier.website }}</a></td>
-        <td>
+        <td class="text-nowrap">
           <a href="{% url 'inventory:supplier_update' supplier.pk %}" class="btn btn-sm btn-primary">Edit</a>
           <a href="{% url 'inventory:supplier_delete' supplier.pk %}" class="btn btn-sm btn-danger">Delete</a>
+          <a href="{% url 'inventory:supplier_detail' supplier.pk %}" class="btn btn-sm btn-outline-info">Details</a>
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="5">No suppliers found.</td></tr>
+      <tr><td colspan="6">No suppliers found.</td></tr>
       {% endfor %}
     </tbody>
-  </table>
+  </table>  
 </div>
 {% endblock %}

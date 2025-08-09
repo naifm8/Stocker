@@ -42,6 +42,11 @@
 
         <ul class="navbar-nav ms-auto">
           {% if user.is_authenticated %}
+            {% if user.is_authenticated and user.profile_image %}
+              <img src="{{ user.profile_image.url }}" alt="Profile" class="rounded-circle" style="width:40px; height:40px;">
+            {% else %}
+              <img src="{% static 'images/default-avatar.png' %}" alt="Profile" class="rounded-circle" style="width:40px; height:40px;">
+            {% endif %}
             <li class="nav-item">
               <span class="navbar-text me-3 text-white">
                 {{ user.username }} ({{ user.get_role_display }})

@@ -6,8 +6,16 @@
       <h4 class="mb-0">{{ product.name }}</h4>
     </div>
     <div class="card-body">
+      {% if product.image %}
+        <img src="{{ product.image.url }}" class="img-fluid mb-3" style="max-width:300px;" alt="{{ product.name }}">
+      {% endif %}
       <p><strong>Category:</strong> {{ product.category.name }}</p>
       <p><strong>Batch #:</strong> {{ product.batch_number }}</p>
+      {% if product.description %}
+        <hr>
+        <h5>Description</h5>
+        <p class="mb-0">{{ product.description }}</p>
+      {% endif %}
       <p><strong>Quantity in Stock:</strong> {{ product.quantity_in_stock }}</p>
       <p><strong>Reorder Level:</strong> {{ product.reorder_level }}</p>
       <p><strong>Unit Price:</strong> ${{ product.unit_price }}</p>

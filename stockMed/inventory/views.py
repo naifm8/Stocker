@@ -6,10 +6,10 @@ from django.utils import timezone
 from datetime import timedelta
 from .utils import send_inventory_alert
 from django.contrib import messages
-from django.db.models import Q, F
 from django.http import HttpResponse
 from .utils_csv import export_products_to_csv, import_products_from_csv
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, F
+from accounts.models import User
 
 
 def is_admin(user):
@@ -42,6 +42,15 @@ def admin_dashboard(request):
     low_stock_count = Product.objects.filter(quantity_in_stock__lte=F('reorder_level')).count()
     in_stock_count = Product.objects.filter(quantity_in_stock__gt=F('reorder_level')).count()
 
+    employees = (
+        User.objects.filter(role='employee')
+        .annotate(product_count=Count('assigned_products'))
+        .order_by('username')
+    )
+
+    user_labels = [e.username for e in employees]
+    user_counts = [e.product_count for e in employees]
+
     context = {
         'low_stock_count': low_stock_products.count(),
         'near_expiry_count': near_expiry_products.count(),
@@ -51,6 +60,9 @@ def admin_dashboard(request):
         'category_values': category_values,
         'low_stock_count_chart': low_stock_count,
         'in_stock_count_chart': in_stock_count,
+        'employees': employees,
+        'user_labels': user_labels,
+        'user_counts': user_counts,
     }
     return render(request, 'inventory/admin_dashboard.html', context)
 
@@ -116,7 +128,7 @@ def supplier_list(request):
 @user_passes_test(is_admin)
 def supplier_create(request):
     if request.method == 'POST':
-        form = SupplierForm(request.POST)
+        form = SupplierForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect('inventory:supplier_list')
@@ -129,7 +141,7 @@ def supplier_create(request):
 def supplier_update(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     if request.method == 'POST':
-        form = SupplierForm(request.POST, instance=supplier)
+        form = SupplierForm(request.POST, request.FILES, instance=supplier)
         if form.is_valid():
             form.save()
             return redirect('inventory:supplier_list')
@@ -197,7 +209,7 @@ def product_list(request):
 @user_passes_test(is_admin)
 def product_create(request):
     if request.method == 'POST':
-        form = ProductForm(request.POST)
+        form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect('inventory:product_list')
@@ -210,7 +222,7 @@ def product_create(request):
 def product_update(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':
-        form = ProductForm(request.POST, instance=product)
+        form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
             form.save()
             return redirect('inventory:product_list')

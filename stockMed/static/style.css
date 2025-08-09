@@ -14,3 +14,6 @@ footer {
 .table th, .table td {
   vertical-align: middle;
 }
+
+.img-thumbnail { border-radius: 8px; }
+

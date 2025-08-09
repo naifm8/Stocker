@@ -6,8 +6,16 @@
       <h4 class="mb-0">{{ supplier.name }}</h4>
     </div>
     <div class="card-body">
+      {% if supplier.image %}
+        <img src="{{ supplier.image.url }}" class="img-fluid mb-3" style="max-width:300px;" alt="{{ supplier.name }}">
+      {% endif %}
       <p><strong>Email:</strong> {{ supplier.email }}</p>
       <p><strong>Phone:</strong> {{ supplier.phone }}</p>
+      {% if supplier.description %}
+        <hr>
+        <h5>About this supplier</h5>
+        <p class="mb-0">{{ supplier.description }}</p>
+      {% endif %}
       <p><strong>Website:</strong>
         <a href="{{ supplier.website }}" target="_blank">{{ supplier.website }}</a>
       </p>

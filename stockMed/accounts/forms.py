@@ -12,7 +12,12 @@ class UserRegistrationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'role', 'password1', 'password2']
+        fields = ['username', 'email', 'role', 'profile_image', 'password1', 'password2']
+
+    class UserUpdateForm(forms.ModelForm):
+        class Meta:
+            model = User
+            fields = ['username', 'email', 'role', 'profile_image']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
