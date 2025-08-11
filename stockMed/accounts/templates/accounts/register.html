@@ -1,22 +1,71 @@
-{% extends 'base.html' %}
-{% load widget_tweaks %}
-{% block title %}Register{% endblock %}
+{% extends 'public_base.html' %}
+{% load static %}
+{% block title %}Register | StockMed{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
-  <h2 class="mb-4 text-center">Create an Account</h2>
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {% for field in form %}
+<style>
+  .auth-wrap {
+    min-height: 100vh; display:flex; align-items:center; justify-content:center;
+    background: url("{% static 'images/hero-med.jpg' %}") center/cover no-repeat fixed;
+    position: relative;
+  }
+  .auth-overlay { position:absolute; inset:0; background:rgba(0,0,0,.45); }
+  .auth-card {
+    position: relative; z-index: 2;
+    width: 100%; max-width: 520px;
+    background: rgba(255,255,255,.95);
+    border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,.25);
+    padding: 28px;
+  }
+</style>
+
+<div class="auth-wrap">
+  <div class="auth-overlay"></div>
+
+  <div class="auth-card">
+    <h3 class="mb-2 text-center">Create an account</h3>
+    <p class="text-muted text-center mb-4">Join StockMed to manage medical inventory</p>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
       <div class="mb-3">
-        <label class="form-label">{{ field.label }}</label>
-        {% render_field field class="form-control" %}
-        {% for error in field.errors %}
-          <div class="text-danger small">{{ error }}</div>
-        {% endfor %}
+          {{ form.username.label_tag }}
+          {{ form.username }}
       </div>
-    {% endfor %}
-    <button type="submit" class="btn btn-primary w-100">Register</button>
+  
+      <div class="mb-3">
+          {{ form.email.label_tag }}
+          {{ form.email }}
+      </div>
+  
+      <div class="mb-3">
+          {{ form.role.label_tag }}
+          {{ form.role }}
+      </div>
+  
+      <div class="mb-3">
+          {{ form.profile_image.label_tag }}
+          {{ form.profile_image }}
+      </div>
+  
+      <div class="mb-3">
+          {{ form.password1.label_tag }}
+          {{ form.password1 }}
+      </div>
+  
+      <div class="mb-3">
+          {{ form.password2.label_tag }}
+          {{ form.password2 }}
+      </div>
+  
+      <button type="submit" class="btn btn-primary">Register</button>
   </form>
+  
+
+    <div class="text-center mt-3">
+      <small class="text-muted">Already have an account?</small>
+      <a href="{% url 'accounts:login' %}">Login</a>
+    </div>
+  </div>
 </div>
 {% endblock %}

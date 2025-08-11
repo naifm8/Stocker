@@ -6,86 +6,232 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}StockMed{% endblock %}</title>
 
-  <!-- Bootstrap 5 CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'style.css' %}">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root { --sidebar-w: 260px; }
+
+    body { background-color: #f6f7fb; }
+
+    /* Fixed sidebar */
+    .sidebar-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;          /* full height */
+      width: var(--sidebar-w);
+      overflow-y: auto;   /* scroll inside sidebar if items overflow */
+      background: #fff;
+      border-right: 1px solid #e9ecef;
+      z-index: 1030;      /* above content */
+      padding: 1rem .75rem;
+    }
+
+    /* Push main content to the right of the fixed sidebar */
+    .main-wrap {
+      margin-left: var(--sidebar-w); /* must equal sidebar width */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Sidebar section titles + links */
+    .section-title {
+      font-size: .75rem; letter-spacing: .06em; color: #6c757d; text-transform: uppercase;
+      margin: 1rem .5rem .5rem;
+    }
+    .nav-item .nav-link {
+      display: flex; align-items: center; gap: .6rem;
+      color: #495057; border-radius: .6rem; padding: .55rem .7rem;
+    }
+    .nav-item .nav-link:hover { background: #f0f2f6; color: #212529; }
+    .nav-item .nav-link.active { background: #e8f7ef; color: #0f5132; font-weight: 600; }
+    .nav-item .nav-link.active .bi { color: #198754; } /* green icon when active */
+
+    /* Header inside main area */
+    .header {
+      background: #ffffff; border-bottom: 1px solid #e7e7ee;
+      position: sticky; top: 0; z-index: 1020;
+    }
+    .search-input { border-radius: 999px; padding-left: 2.5rem; }
+    .search-icon { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); color: #6c757d; }
+    .profile img {
+      width: 40px; height: 40px; object-fit: cover; border-radius: 50%;
+      border: 1px solid #e7e7ee;
+    }
+    .content-wrap { padding: 1rem 1.25rem; }
+
+    /* Mobile: sidebar becomes off-canvas, content full width */
+    @media (max-width: 991.98px) {
+      .sidebar-fixed {
+        position: fixed;
+        transform: translateX(-100%);
+        transition: transform .2s ease;
+        width: 85vw;      /* comfortable width on mobile */
+        max-width: 320px;
+      }
+      .sidebar-fixed.show { transform: translateX(0); }
+      .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 1025; }
+      .backdrop.show { display: block; }
+
+      .main-wrap {
+        margin-left: 0;   /* full width content on mobile */
+      }
+    }
+  </style>
 </head>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-{% block extra_js %}{% endblock %}
+<body>
+  {% with request.resolver_match.url_name as url_name %}
+  <div class="app-shell">
 
-<body class="d-flex flex-column min-vh-100">
-
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/">StockMed</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="navbarMain">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          {% if user.is_authenticated %}
-            {% if user.role == 'admin' %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventory:admin_dashboard' %}">Dashboard</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventory:product_list' %}">Products</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventory:category_list' %}">Categories</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventory:supplier_list' %}">Suppliers</a></li>
-            {% elif user.role == 'employee' %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventory:employee_dashboard' %}">Dashboard</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventory:product_list' %}">Products</a></li>
-            {% endif %}
-          {% endif %}
-        </ul>
-
-        <ul class="navbar-nav ms-auto">
-          {% if user.is_authenticated %}
-            {% if user.is_authenticated and user.profile_image %}
-              <img src="{{ user.profile_image.url }}" alt="Profile" class="rounded-circle" style="width:40px; height:40px;">
-            {% else %}
-              <img src="{% static 'images/default-avatar.png' %}" alt="Profile" class="rounded-circle" style="width:40px; height:40px;">
-            {% endif %}
-            <li class="nav-item">
-              <span class="navbar-text me-3 text-white">
-                {{ user.username }} ({{ user.get_role_display }})
-              </span>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'accounts:logout' %}">Logout</a>
-            </li>
+    <!-- Sidebar (FIXED) -->
+    <aside id="sidebar" class="bg-white sidebar-fixed border-end d-flex flex-column">
+      <nav class="flex-grow-1">
+        <div class="text-center py-3 border-bottom">
+          {% if request.user.is_authenticated %}
+              {% if request.user.role == 'admin' %}
+                  <a href="{% url 'inventory:admin_dashboard' %}" class="text-decoration-none fw-bold fs-4 text-primary">
+                      STOCK<span class="text-success">MED</span>
+                  </a>
+              {% elif request.user.role == 'employee' %}
+                  <a href="{% url 'inventory:employee_dashboard' %}" class="text-decoration-none fw-bold fs-4 text-primary">
+                      STOCK<span class="text-success">MED</span>
+                  </a>
+              {% endif %}
           {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'accounts:login' %}">Login</a>
-            </li>
+              <a href="{% url 'inventory:home' %}" class="text-decoration-none fw-bold fs-4 text-primary">
+                  STOCK<span class="text-success">MED</span>
+              </a>
+          {% endif %}
+      </div>
+        <div class="section-title px-2 pt-1">Menu</div>
+        <ul class="nav flex-column">
+          {% if request.user.is_authenticated and request.user.role == 'admin' %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'inventory:admin_dashboard' %}">
+              <i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'inventory:product_list' %}">
+              <i class="bi bi-box-seam"></i><span>Products</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'inventory:category_list' %}">
+              <i class="bi bi-tags"></i><span>Categories</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'inventory:supplier_list' %}">
+              <i class="bi bi-truck"></i><span>Suppliers</span></a></li>
+          {% elif request.user.is_authenticated and request.user.role == 'employee' %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'inventory:employee_dashboard' %}">
+              <i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'inventory:product_list' %}">
+              <i class="bi bi-box-seam"></i><span>Products</span></a></li>
+            {# No categories/suppliers for employees #}
           {% endif %}
         </ul>
+      </nav>
+    
+      <div class="mt-auto border-top pt-3">
+        <div class="section-title px-2">General</div>
+        <ul class="nav flex-column">
+          {% if request.user.is_authenticated and request.user.role == 'admin' %}
+            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-gear"></i><span>Settings</span></a></li>
+          {% endif %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'inventory:home' %}">
+            <i class="bi bi-envelope"></i><span>Contact us</span></a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'accounts:logout' %}">
+            <i class="bi bi-box-arrow-right"></i><span>Logout</span></a></li>
+        </ul>
       </div>
-    </div>
-  </nav>
+    </aside>
 
-  <!-- Main Content -->
-  <main class="flex-grow-1 py-4">
-    {% if messages %}
-      <div class="container">
-        {% for message in messages %}
-          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Mobile overlay -->
+    <div id="backdrop" class="backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- MAIN AREA (offset by fixed sidebar) -->
+    <div class="main-wrap">
+      <!-- Header -->
+      <header class="header">
+        <div class="container-fluid py-2">
+          <div class="d-flex align-items-center">
+            <!-- Mobile menu button -->
+            <button class="btn btn-outline-secondary d-lg-none me-2" type="button" onclick="toggleSidebar()">
+              <i class="bi bi-list"></i>
+            </button>
+
+            <!-- Left: (logo space intentionally empty per your spec) -->
+            <div class="d-none d-lg-block me-3"></div>
+
+            <!-- Center: Search bar -->
+            <div class="flex-grow-1 position-relative me-3">
+              <i class="bi bi-search search-icon"></i>
+              <form method="get" action="{% url 'inventory:product_list' %}">
+                <input class="form-control search-input" name="q" placeholder="Search task" />
+              </form>
+            </div>
+
+            <!-- Right: Profile -->
+            <div class="profile d-flex align-items-center gap-2">
+              {% if user.is_authenticated and user.profile_image %}
+                <img src="{{ user.profile_image.url }}" alt="{{ user.username }}">
+              {% else %}
+                <img src="{% static 'images/default-avatar.png' %}" alt="Profile">
+              {% endif %}
+              <div class="d-none d-sm-block">
+                <div class="fw-semibold">{{ user.get_full_name|default:user.username }}</div>
+                <div class="small text-muted">{{ user.email }}</div>
+              </div>
+            </div>
           </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-    {% block content %}{% endblock %}
-  </main>
+        </div>
+      </header>
+      
+      <!-- Page content -->
+      <main class="content-wrap">
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="toast align-items-center text-white bg-{{ message.tags }} border-0"
+                   role="alert" aria-live="assertive" aria-atomic="true"
+                   data-bs-delay="3500">
+                <div class="d-flex">
+                  <div class="toast-body">
+                    {{ message }}
+                  </div>
+                  <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                          data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
 
-  <!-- Footer -->
-  <footer class="bg-dark text-white text-center py-2 mt-auto">
-    <div class="container">
-      <small>&copy; {{ now|default:2025 }} StockMed – All rights reserved</small>
+        {% block content %}{% endblock %}
+      </main>
     </div>
-  </footer>
+
+  </div>
+  {% endwith %}
 
   <!-- Bootstrap JS -->
-  <script src="https://cdn
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    function toggleSidebar() {
+      const el = document.getElementById('sidebar');
+      const bd = document.getElementById('backdrop');
+      el.classList.toggle('show');
+      bd.classList.toggle('show');
+    }
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+      toastElList.forEach(function (toastEl) {
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+      });
+    });
+  </script>  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

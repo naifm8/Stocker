@@ -4,10 +4,16 @@ from . import views
 app_name = 'inventory'
 
 urlpatterns = [
+    path("", views.public_home, name="home"),
+
+
     # Dashboards URLs
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('employee-dashboard/', views.employee_dashboard, name='employee_dashboard'),
     path('alerts/send/', views.trigger_email_alerts, name='trigger_alerts'),
+    path("send-test-email/", views.send_test_email, name="send_test_email"),
+    path("alerts/test/", views.send_test_email, name="send_test_email"),
+
 
 
     # Category URLs

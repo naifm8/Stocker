@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from inventory.models import Category
 
 class User(AbstractUser):
     ROLE_CHOICES = (

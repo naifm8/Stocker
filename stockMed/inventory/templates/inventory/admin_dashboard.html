@@ -1,42 +1,83 @@
 {% extends 'base.html' %}
+{% block title %}Admin Dashboard | StockMed{% endblock %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Admin Dashboard</h2>
+<div class="container-fluid px-3 px-md-4">
 
-  <!-- Existing Low Stock & Expiry Cards -->
-  <div class="row mt-4">
-    <div class="col-md-6">
-      <div class="card border-warning mb-3">
-        <div class="card-header bg-warning text-dark">Low Stock</div>
+  <div class="d-flex align-items-center justify-content-between my-3">
+    <h3 class="mb-0">Dashboard</h3>
+    <div class="d-flex gap-2">
+      <a href="{% url 'inventory:send_test_email' %}" class="btn btn-outline-dark">
+        <i class="bi bi-envelope"></i> Send Alerts Email
+      </a>        
+      <a href="{% url 'inventory:product_create' %}" class="btn btn-success">+ Add Product</a>
+      <a href="{% url 'inventory:product_import' %}" class="btn btn-outline-primary">Import Data</a>
+    </div>
+  </div>
+
+  {% include 'inventory/_mini_cards.html' %}
+
+  <div class="row g-3 mt-1">
+    <!-- Category quantities -->
+    <div class="col-lg-8">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white">
+          <strong>Product Analytics</strong>
+        </div>
         <div class="card-body">
-          <h5 class="card-title">{{ low_stock_count }} product(s)</h5>
+          <canvas id="categoryChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reminders / Quick actions -->
+    <div class="col-lg-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white">
+          <strong>Status</strong>
+        </div>
+        <div class="card-body">
+          <canvas id="stockChart" height="120"></canvas>
+          <hr>
+          <p class="mb-1"><strong>Suppliers:</strong> {{ metrics.total_suppliers }}</p>
+          <p class="mb-0"><strong>Categories:</strong> {{ metrics.total_categories }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <!-- Low stock list -->
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white"><strong>Low Stock</strong></div>
+        <div class="card-body">
           <ul class="list-group list-group-flush">
-            {% for product in low_stock_products %}
+            {% for p in low_list %}
               <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ product.name }}
-                <span class="badge bg-danger">{{ product.quantity_in_stock }}</span>
+                <a href="{% url 'inventory:product_detail' p.pk %}">{{ p.name }}</a>
+                <span class="badge bg-danger">{{ p.quantity_in_stock }}</span>
               </li>
             {% empty %}
-              <li class="list-group-item">No low stock items.</li>
+              <li class="list-group-item text-muted">No items.</li>
             {% endfor %}
           </ul>
         </div>
       </div>
     </div>
 
-    <div class="col-md-6">
-      <div class="card border-danger mb-3">
-        <div class="card-header bg-danger text-white">Expiring Soon</div>
+    <!-- Expiring soon -->
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white"><strong>Expiring Soon</strong></div>
         <div class="card-body">
-          <h5 class="card-title">{{ near_expiry_count }} product(s)</h5>
           <ul class="list-group list-group-flush">
-            {% for product in near_expiry_products %}
+            {% for p in exp_list %}
               <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ product.name }}
-                <span class="badge bg-warning text-dark">{{ product.expiry_date }}</span>
+                <a href="{% url 'inventory:product_detail' p.pk %}">{{ p.name }}</a>
+                <span class="badge bg-warning text-dark">{{ p.expiry_date }}</span>
               </li>
             {% empty %}
-              <li class="list-group-item">No expiring items.</li>
+              <li class="list-group-item text-muted">No items.</li>
             {% endfor %}
           </ul>
         </div>
@@ -44,139 +85,139 @@
     </div>
   </div>
 
-  <!-- Charts Section -->
-  <div class="row mt-5">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Product Quantity by Category</div>
-        <div class="card-body">
-          <canvas id="categoryChart" height="200"></canvas>
+  <!-- Team / Users table -->
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between">
+          <strong>Team Collaboration</strong>
+          <a href="{% url 'accounts:add_member' %}" class="btn btn-sm btn-outline-secondary">+ Add Member</a>
         </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Stock Status</div>
         <div class="card-body">
-          <canvas id="stockChart" height="200"></canvas>
+          <div class="mb-3"><canvas id="usersChart" height="120"></canvas></div>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Profile</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Categories</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for emp in employees %}
+                  <tr>
+                    <td>
+                      {% if emp.profile_image %}
+                        <img src="{{ emp.profile_image.url }}" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;">
+                      {% else %}
+                        <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center"
+                             style="width:40px;height:40px;">—</div>
+                      {% endif %}
+                    </td>
+                    <td>{{ emp.get_full_name|default:emp.username }}</td>
+                    <td><a href="mailto:{{ emp.email }}">{{ emp.email }}</a></td>
+                    <td><span class="badge bg-secondary">{{ emp.get_role_display }}</span></td>
+                    <td>
+                      {% if emp.is_active %}
+                        <span class="badge bg-success">Active</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                      {% endif %}
+                    </td>
+                    <td style="min-width:240px;">
+                      {% if emp.categories_assigned.all %}
+                        {% for cat in emp.categories_assigned.all %}
+                          <span class="badge bg-info text-dark me-1 mb-1">{{ cat.name }}</span>
+                        {% endfor %}
+                      {% else %}
+                        <span class="text-muted">No category assigned</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                      <a href="{% url 'accounts:member_edit' emp.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                      <form method="post" action="{% url 'accounts:member_delete' emp.pk %}" style="display:inline;"
+                            onsubmit="return confirm('Delete this member?');">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-outline-danger">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="7" class="text-muted">No employees found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
 </div>
-
-<div class="row mt-5">
-  <div class="col-12">
-    <div class="card shadow">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Users Overview</span>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle">
-            <thead class="table-light">
-              <tr>
-                <th style="width:70px;">Profile</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th class="text-center">Products Assigned</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for emp in employees %}
-              <tr>
-                <td>
-                  {% if emp.profile_image %}
-                    <img src="{{ emp.profile_image.url }}" class="rounded-circle"
-                         style="width:50px;height:50px;object-fit:cover;" alt="{{ emp.username }}">
-                  {% else %}
-                    <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center"
-                         style="width:50px;height:50px;font-size:.75rem;">No img</div>
-                  {% endif %}
-                </td>
-                <td>{{ emp.get_full_name|default:emp.username }}</td>
-                <td><a href="mailto:{{ emp.email }}">{{ emp.email }}</a></td>
-                <td>{{ emp.get_role_display }}</td>
-                <td>
-                  {% if emp.is_active %}
-                    <span class="badge bg-success">Active</span>
-                  {% else %}
-                    <span class="badge bg-secondary">Inactive</span>
-                  {% endif %}
-                </td>
-                <td class="text-center">
-                  <span class="badge bg-primary">{{ emp.product_count }}</span>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="6">No employees found.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script type="application/javascript">
-  const categoryLabels = JSON.parse('{{ category_labels|safe|escapejs }}');
-  const categoryValues = JSON.parse('{{ category_values|safe|escapejs }}');
-  const lowStockCount = JSON.parse('{{ low_stock_count_chart|safe|escapejs }}');
-  const inStockCount = JSON.parse('{{ in_stock_count_chart|safe|escapejs }}');
+  const catLabels = {{ cat_labels|safe }};
+  const catQty = {{ cat_qty|safe }};
+  const lowCount = {{ low_vs_ok.low|default:0 }};
+  const okCount = {{ low_vs_ok.ok|default:0 }};
+  const usersLabels = {{ user_labels|safe }};
+  const usersCounts = {{ user_counts|safe }};
 
-  const categoryChart = new Chart(document.getElementById('categoryChart'), {
+
+new Chart(document.getElementById('categoryChart'), {
     type: 'bar',
     data: {
-      labels: categoryLabels,
-      datasets: [{
-        label: 'Quantity',
-        data: categoryValues,
-        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1
-      }]
+        labels: JSON.parse('{{ cat_labels|escapejs }}'),
+        datasets: [{
+            label: 'Quantity',
+            data: JSON.parse('{{ cat_qty|escapejs }}'),
+            backgroundColor: '#4e73df',
+            borderRadius: 6,
+            barThickness: 40
+        }]
     },
-    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Qty: ' + context.formattedValue;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: { beginAtZero: true }
+        }
+    }
+});
+
+
+
+new Chart(document.getElementById('stockChart'), {
+      type: 'doughnut',
+      data: {
+          labels: ['Low Stock', 'OK'],
+          datasets: [{ data: [{{ low_count }}, {{ ok_count }}], backgroundColor: ['#e74a3b', '#1cc88a'] }]
+      }
   });
 
-  const stockChart = new Chart(document.getElementById('stockChart'), {
-    type: 'pie',
-    data: {
-      labels: ['Low Stock', 'In Stock'],
-      datasets: [{
-        data: [lowStockCount, inStockCount],
-        backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(75, 192, 192, 0.7)']
-      }]
-    },
-    options: { responsive: true }
-  });
-</script>
-<script type="application/javascript">
-
-  const userLabels = JSON.parse('{{ user_labels|safe|escapejs }}');
-  const userCounts = JSON.parse('{{ user_counts|safe|escapejs }}');
-
-  const usersChart = new Chart(document.getElementById('usersChart'), {
-    type: 'bar',
-    data: {
-      labels: userLabels,
-      datasets: [{
-        label: 'Products Assigned',
-        data: userCounts,
-        borderWidth: 1
-      }]
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+new Chart(document.getElementById('usersChart'), {
+      type: 'bar',
+      data: {
+          labels: {{ user_labels|safe }},
+          datasets: [{ label: 'Assigned Categories', data: {{ user_counts|safe }}, backgroundColor: '#36b9cc', borderRadius: 6, barThickness: 50, }]
+      }
   });
 </script>
 {% endblock %}
-
-

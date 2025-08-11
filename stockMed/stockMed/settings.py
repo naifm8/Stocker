@@ -14,6 +14,15 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 load_dotenv()
+from django.contrib.messages import constants as messages
+
+MESSAGE_TAGS = {
+    messages.DEBUG: "secondary",
+    messages.INFO: "info",
+    messages.SUCCESS: "success",
+    messages.WARNING: "warning",
+    messages.ERROR: "danger",
+}
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -107,13 +116,17 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'accounts.User'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.getenv('EMAIL_HOST')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))  # default to 587
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS') == 'True'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "naifbg.95@gmail.com"
+EMAIL_HOST_PASSWORD = "hrzqoveqrzjylqma" 
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False 
+DEFAULT_FROM_EMAIL = "StockMed <naifbg.95@gmail.com>"
+MANAGER_ALERT_EMAIL = "naifbg.95@gmail.com"
+
 
 
 

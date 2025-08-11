@@ -1,15 +1,75 @@
 {% extends 'base.html' %}
+{% block title %}Products | StockMed{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-  <h2>Products</h2>
-  {% if user.role == 'admin' %}
-    <a href="{% url 'inventory:product_create' %}" class="btn btn-success mb-3">+ Add Product</a>
-  {% endif %}
-  <div class="mb-3 text-end">
-   <a href="{% url 'inventory:product_export' %}" class="btn btn-outline-success">Export CSV</a>
-   <a href="{% url 'inventory:product_import' %}" class="btn btn-outline-primary">Import CSV</a>
+<div class="container-fluid px-3 px-md-4">
+
+  <style>
+    /* subtle, clean hover for cards */
+    .card.hoverable { transition: transform .15s ease, box-shadow .15s ease; }
+    .card.hoverable:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+
+    /* black/white button scheme */
+    .btn-dark { background:#000; border-color:#000; }
+    .btn-dark:hover { background:#222; border-color:#222; }
+    .btn-outline-dark { color:#000; border-color:#000; }
+    .btn-outline-dark:hover { background:#000; color:#fff; }
+
+    /* keep toggle buttons tight and consistent */
+    .view-toggle .btn { min-width: 40px; }
+    
+    .sm-pager { 
+      display:flex; gap:12px; list-style:none; padding:0; margin:0;
+      justify-content:center; align-items:center;
+    }
+    .sm-pager .sm-page a,
+    .sm-pager .sm-page span {
+      display:flex; align-items:center; justify-content:center;
+      min-width:35px; height:35px;
+      border:1px solid #cfd2d8; border-radius:12px;
+      background:#fff; text-decoration:none;
+      font-weight:600; font-size:1.05rem;
+      color:#000000; 
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .sm-pager .sm-page a:hover { background:#f6f7fb; }
+
+    .sm-pager .sm-page.active span {
+      background:#2f2f2f; color:#fff; border-color:#2f2f2f;
+    }
+    .sm-pager .sm-page.disabled span {
+      color:#b7bcc4; background:#fff; border-color:#d9dce1;
+      cursor:default; pointer-events:none; opacity:.7;
+    }
+  </style>
+
+  <!-- Header + actions -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Products</h3>
+
+    <div class="d-flex align-items-center gap-2">
+      <!-- View toggles -->
+      <div class="btn-group view-toggle" role="group" aria-label="Toggle view">
+        <a href="?view=list{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_supplier %}&supplier={{ selected_supplier }}{% endif %}{% if expiry %}&expiry={{ expiry }}{% endif %}{% if low_stock %}&low_stock={{ low_stock }}{% endif %}"
+           class="btn btn-outline-dark {% if view_mode == 'list' %}active{% endif %}" title="List view">
+          <i class="bi bi-list"></i>
+        </a>
+        <a href="?view=card{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_supplier %}&supplier={{ selected_supplier }}{% endif %}{% if expiry %}&expiry={{ expiry }}{% endif %}{% if low_stock %}&low_stock={{ low_stock }}{% endif %}"
+           class="btn btn-outline-dark {% if view_mode != 'list' %}active{% endif %}" title="Card view">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </a>
+      </div>
+
+      {% if request.user.is_authenticated and request.user.role in 'employee,admin' %}
+      <a href="{% url 'inventory:product_create' %}" class="btn btn-dark">
+        <i class="bi bi-plus-lg"></i> Add Product
+      </a>
+      {% endif %}
+    </div>
   </div>
 
+  <!-- Filters -->
   <form method="get" class="row g-3 mb-4">
     <div class="col-md-3">
       <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search product name">
@@ -43,70 +103,162 @@
       </select>
     </div>
     <div class="col-md-1">
-      <button class="btn btn-primary w-100" type="submit">Filter</button>
+      <button class="btn btn-dark w-100" type="submit">Filter</button>
     </div>
+    {# preserve current view mode on submit #}
+    {% if view_mode %}<input type="hidden" name="view" value="{{ view_mode }}">{% endif %}
   </form>
 
-  <table class="table table-bordered table-striped align-middle">
-    <thead>
-      <tr>
-        <th style="width:70px;">Image</th>
-        <th>Name</th>
-        <th>Category</th>
-        <th>Suppliers</th>
-        <th>Batch #</th>
-        <th>Qty</th>
-        <th>Reorder Level</th>
-        <th>Price</th>
-        <th>Expiry</th>
-        <th>Status</th>
-        {% if user.role == 'admin' %}<th>Actions</th>{% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for product in products %}
-      <tr>
-        <td>
-          {% if product.image %}
-            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
-          {% else %}
-            <div class="bg-light border rounded d-flex align-items-center justify-content-center"
-                 style="width:60px;height:60px;font-size:.8rem;">No img</div>
-          {% endif %}
-        </td>
-        <td>
-          <a href="{% url 'inventory:product_detail' product.pk %}">{{ product.name }}</a>
-        </td>
-        <td>{{ product.category.name }}</td>
-        <td>
-          {% for supplier in product.suppliers.all %}
-            {{ supplier.name }}{% if not forloop.last %}, {% endif %}
-          {% endfor %}
-        </td>
-        <td>{{ product.batch_number }}</td>
-        <td>{{ product.quantity_in_stock }}</td>
-        <td>{{ product.reorder_level }}</td>
-        <td>${{ product.unit_price }}</td>
-        <td>{{ product.expiry_date }}</td>
-        <td>
-          {% if product.is_expiring_soon %}<span class="badge bg-warning text-dark">Expiring Soon</span>{% endif %}
-          {% if product.is_low_stock %}<span class="badge bg-danger">Low Stock</span>{% endif %}
-        </td>
-        {% if user.role == 'admin' %}
-        <td class="text-nowrap">
-          <a href="{% url 'inventory:product_update' product.pk %}" class="btn btn-sm btn-primary">Edit</a>
-          <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-sm btn-danger">Delete</a>
-          <a href="{% url 'inventory:product_detail' product.pk %}" class="btn btn-sm btn-outline-info">Details</a>
-        </td>
-        {% endif %}
-      </tr>
-      {% empty %}
-      <tr><td colspan="11">No products available.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  
+  {# -------- CARD VIEW (default) -------- #}
+  {% if view_mode != 'list' %}
+    <div class="row g-4">
+      {% for p in products %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="card hoverable h-100 border-0 rounded-3 overflow-hidden">
+            <!-- Image -->
+            {% if p.image %}
+              <img src="{{ p.image.url }}" class="card-img-top" style="height:180px;object-fit:contain;" alt="{{ p.name }}">
+            {% else %}
+              <div class="bg-light d-flex align-items-center justify-content-center" style="height:180px;">
+                <span class="text-muted small">No image</span>
+              </div>
+            {% endif %}
 
+            <!-- Body -->
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <h6 class="fw-semibold mb-1">{{ p.name }}</h6>
+                <span class="badge {% if p.quantity_in_stock <= p.reorder_level %}bg-danger{% else %}bg-success{% endif %}">
+                  {{ p.quantity_in_stock }}
+                </span>
+              </div>
+              <div class="text-muted small mb-2">{{ p.category.name }}</div>
+              {% if p.expiry_date %}
+                <div class="small"><i class="bi bi-clock-history me-1"></i> Exp: {{ p.expiry_date }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Footer -->
+            <div class="card-footer bg-white border-0 d-flex justify-content-between">
+              <a href="{% url 'inventory:product_detail' p.pk %}" class="btn btn-sm btn-dark text-white">View</a>
+              <div class="btn-group">
+                <a href="{% url 'inventory:product_update' p.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                {% if request.user.role == 'admin' %}
+                <form method="post" action="{% url 'inventory:product_delete' p.pk %}" onsubmit="return confirm('Delete this product?');">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-dark">Delete</button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12 text-muted">No products found.</div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+  {# -------- LIST VIEW -------- #}
+    <div class="card shadow-sm border-0">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:70px;">Image</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th class="text-end">Qty</th>
+              <th class="text-end">Reorder</th>
+              <th>Expiry</th>
+              <th class="text-end">Price</th>
+              <th class="text-end">Total</th>
+              <th class="text-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in products %}
+              <tr>
+                <td>
+                  {% if p.image %}
+                    <img src="{{ p.image.url }}" class="img-thumbnail" style="width:56px;height:56px;object-fit:cover;" alt="{{ p.name }}">
+                  {% else %}
+                    <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+                         style="width:56px;height:56px;font-size:.75rem;">No img</div>
+                  {% endif %}
+                </td>
+                <td><a href="{% url 'inventory:product_detail' p.pk %}">{{ p.name }}</a></td>
+                <td>{{ p.category.name }}</td>
+                <td class="text-end">
+                  <span class="badge {% if p.quantity_in_stock <= p.reorder_level %}bg-danger{% else %}bg-success{% endif %}">
+                    {{ p.quantity_in_stock }}
+                  </span>
+                </td>
+                <td class="text-end">{{ p.reorder_level }}</td>
+                <td>{% if p.expiry_date %}{{ p.expiry_date }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                <td class="text-end">${{ p.unit_price }}</td>
+                <td class="text-end">
+                  {# If you annotated line_total in the view, you can use {{ p.line_total }} here #}
+                  ${{ p.quantity_in_stock|add:"0"|floatformat:0 }}
+                </td>
+                <td class="text-nowrap">
+                  <a href="{% url 'inventory:product_update' p.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                  {% if request.user.role == 'admin' %}
+                  <form method="post" action="{% url 'inventory:product_delete' p.pk %}" class="d-inline"
+                        onsubmit="return confirm('Delete this product?');">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-dark">Delete</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="9" class="text-muted">No products found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if is_paginated %}
+  <nav aria-label="Products pages" class="mt-4">
+    <ul class="sm-pager">
+  
+      {# « Prev #}
+      {% if page_obj.has_previous %}
+        <li class="sm-page">
+          <a href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">«</a>
+        </li>
+      {% else %}
+        <li class="sm-page disabled"><span>«</span></li>
+      {% endif %}
+  
+      {# Page numbers with window: current ±1 #}
+      {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+          <li class="sm-page active"><span>{{ num }}</span></li>
+        {% elif num >= page_obj.number|add:"-1" and num <= page_obj.number|add:"1" %}
+          <li class="sm-page">
+            <a href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ num }}">{{ num }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+  
+      {# » Next #}
+      {% if page_obj.has_next %}
+        <li class="sm-page">
+          <a href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">»</a>
+        </li>
+      {% else %}
+        <li class="sm-page disabled"><span>»</span></li>
+      {% endif %}
+  
+    </ul>
+  </nav>
+  {% endif %}
+  
+  
 
 </div>
 {% endblock %}

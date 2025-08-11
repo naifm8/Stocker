@@ -1,0 +1,78 @@
+<div class="row g-3">
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <h6 class="text-muted mb-0">Total Products</h6>
+            <i class="bi bi-box-seam"></i>
+          </div>
+          <h2 class="mt-2">
+            {% if metrics.total_products is not None %}
+              {{ metrics.total_products }}
+            {% else %}
+              {{ metrics.assigned_products }}
+            {% endif %}
+          </h2>          
+          <small class="text-success">Live inventory</small>
+        </div>
+      </div>
+    </div>
+  
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <h6 class="text-muted mb-0">Low Stock</h6>
+            <i class="bi bi-exclamation-triangle"></i>
+          </div>
+          <h2 class="mt-2">
+            {% if metrics.low_stock is not None %}
+              {{ metrics.low_stock }}
+            {% else %}
+              {{ metrics.my_low_stock }}
+            {% endif %}
+          </h2>
+          <small class="text-danger">Needs attention</small>
+        </div>
+      </div>
+    </div>
+  
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <h6 class="text-muted mb-0">Near Expiry</h6>
+            <i class="bi bi-clock-history"></i>
+          </div>
+          <h2 class="mt-2">
+            {% if metrics.near_expiry is not None %}
+              {{ metrics.near_expiry }}
+            {% else %}
+              {{ metrics.my_near_expiry }}
+            {% endif %}
+          </h2>
+          <small class="text-warning">Check batches</small>
+        </div>
+      </div>
+    </div>
+  
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <h6 class="text-muted mb-0">Inventory Value</h6>
+            <i class="bi bi-cash-coin"></i>
+          </div>
+          <h2 class="mt-2">
+            {% if metrics.inventory_value is not None %}
+              ${{ metrics.inventory_value }}
+            {% else %}
+              ${{ metrics.my_inventory_value }}
+            {% endif %}
+          </h2>
+          <small class="text-muted">Sum(qty x price)</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  

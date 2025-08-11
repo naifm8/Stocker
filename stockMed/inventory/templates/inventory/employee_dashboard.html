@@ -1,7 +1,206 @@
 {% extends 'base.html' %}
+{% block title %}My Dashboard | StockMed{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-  <h2>Welcome Employee</h2>
-  <p>You can view and update product inventory from here.</p>
+<div class="container-fluid px-3 px-md-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between my-3">
+    <h3 class="mb-0">My Dashboard</h3>
+    <div class="d-flex gap-2">
+      <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-secondary">View All Products</a>
+      {% if request.user.is_authenticated and request.user.role == 'employee' %}
+        <a href="{% url 'inventory:product_create' %}" class="btn btn-success">+ Add Product</a>
+      {% endif %}
+    </div>
+  </div>
+  
+
+  <!-- Metrics -->
+  {% include 'inventory/_mini_cards.html' %}
+
+  <!-- Assigned Categories -->
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+          <strong>My Assigned Categories</strong>
+        </div>
+        <div class="card-body">
+          {% if assigned_cats %}
+            {% for cat in assigned_cats %}
+              <span class="badge bg-info text-dark me-1 mb-1">{{ cat.name }}</span>
+            {% endfor %}
+          {% else %}
+            <span class="text-muted">No categories assigned yet.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="row g-3 mt-1">
+    <div class="col-lg-8">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white"><strong>My Products by Category</strong></div>
+        <div class="card-body">
+          <canvas id="categoryChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white"><strong>Status</strong></div>
+        <div class="card-body">
+          <canvas id="stockChart" height="120"></canvas>
+          <hr>
+          <p class="mb-1"><strong>Suppliers in my scope:</strong> {{ metrics.suppliers_count }}</p>
+          <p class="mb-0"><strong>Total assigned products:</strong> {{ metrics.assigned_products }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational lists -->
+  <div class="row g-3 mt-1">
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white"><strong>My Low Stock</strong></div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            {% for p in low_list %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'inventory:product_detail' p.pk %}">{{ p.name }}</a>
+                <span class="badge bg-danger">{{ p.quantity_in_stock }}</span>
+              </li>
+            {% empty %}
+              <li class="list-group-item text-muted">No items.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white"><strong>My Expiring Soon (≤30d)</strong></div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            {% for p in exp_list %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'inventory:product_detail' p.pk %}">{{ p.name }}</a>
+                <span class="badge bg-warning text-dark">{{ p.expiry_date }}</span>
+              </li>
+            {% empty %}
+              <li class="list-group-item text-muted">No items.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Products of assigned categories -->
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+          <strong>Products in My Categories</strong>
+          <div class="text-muted small">Total: {{ metrics.assigned_products }}</div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:70px;">Image</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Qty</th>
+                  <th>Reorder</th>
+                  <th>Price</th>
+                  <th>Expiry</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in my_products %}
+                  <tr>
+                    <td>
+                      {% if p.image %}
+                        <img src="{{ p.image.url }}" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;" alt="{{ p.name }}">
+                      {% else %}
+                        <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+                             style="width:60px;height:60px;font-size:.8rem;">No img</div>
+                      {% endif %}
+                    </td>
+                    <td><a href="{% url 'inventory:product_detail' p.pk %}">{{ p.name }}</a></td>
+                    <td>{{ p.category.name }}</td>
+                    <td>{{ p.quantity_in_stock }}</td>
+                    <td>{{ p.reorder_level }}</td>
+                    <td>${{ p.unit_price }}</td>
+                    <td>{{ p.expiry_date }}</td>
+                    <td class="text-nowrap">
+                      {% if p.quantity_in_stock <= p.reorder_level %}
+                        <span class="badge bg-danger me-1">Low Stock</span>
+                      {% endif %}
+                      {% if p.expiry_date <= today|default:None %}
+                        {# safeguard; normally we check in view #}
+                      {% endif %}
+                      {% if p.is_expiring_soon %}
+                        <span class="badge bg-warning text-dark">Expiring Soon</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">
+                      <a class="btn btn-sm btn-outline-primary" href="{% url 'inventory:product_detail' p.pk %}">Details</a>
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="9" class="text-muted">No products found in your assigned categories.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+
+  const catLabels = {{ cat_labels|safe }};
+  const catQty = {{ cat_qty|safe }};
+  const lowCount = {{ low_count|default:0 }};
+  const okCount = {{ ok_count|default:0 }};
+
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'bar',
+    data: {
+      labels: catLabels,
+      datasets: [{ label: 'Quantity', data: catQty, backgroundColor: '#4e73df', borderRadius: 6 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  new Chart(document.getElementById('stockChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Low Stock', 'OK'],
+      datasets: [{ data: [lowCount, okCount], backgroundColor: ['#e74a3b', '#1cc88a'] }]
+    },
+    options: { responsive: true }
+  });
+</script>
+{% endblock %}
+

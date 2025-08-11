@@ -22,12 +22,10 @@ from inventory.views import public_home
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('accounts/', include('accounts.urls')),
-    path('', public_home, name='home'),
-    path('', include('inventory.urls')),
+    path("admin/", admin.site.urls),
+    path("", include(("inventory.urls", "inventory"), namespace="inventory")),
+    path("accounts/", include(("accounts.urls", "accounts"), namespace="accounts")),
 ]
-
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

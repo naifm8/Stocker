@@ -3,8 +3,9 @@ from .models import Category, Supplier, Product
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
+    list_display = ('name', 'assigned_to')
     search_fields = ('name',)
+
 
 
 @admin.register(Supplier)
@@ -19,3 +20,4 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ('category', 'expiry_date')
     search_fields = ('name', 'batch_number')
     filter_horizontal = ('suppliers',)
+

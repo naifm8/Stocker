@@ -2,8 +2,14 @@ from django.db import models
 from django.conf import settings
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='categories_assigned'
+    )
 
     def __str__(self):
         return self.name
@@ -34,13 +40,7 @@ class Product(models.Model):
     image = models.ImageField(upload_to='products/', blank=True, null=True)
     description = models.TextField(blank=True)
 
-    assigned_to = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='assigned_products',
-        limit_choices_to={'role': 'employee'}
-    )
+
 
     def __str__(self):
         return f"{self.name} - Batch: {self.batch_number}"

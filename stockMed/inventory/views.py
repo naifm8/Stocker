@@ -8,70 +8,143 @@ from .utils import send_inventory_alert
 from django.contrib import messages
 from django.http import HttpResponse
 from .utils_csv import export_products_to_csv, import_products_from_csv
-from django.db.models import Count, Sum, F
+from django.db.models import Count, Sum, F, Prefetch, Q
 from accounts.models import User
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import json
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
+from .utils import get_inventory_alerts
 
+def is_admin(u): return u.is_authenticated and u.role == 'admin'
+def is_employee(u): return u.is_authenticated and u.role == 'employee'
+def is_staffer(u): return u.is_authenticated and u.role in ('admin', 'employee')
 
-def is_admin(user):
-    return user.is_authenticated and user.role == 'admin'
+def _near_expiry_qs(days=30):
+    return Product.objects.filter(expiry_date__lte=timezone.now().date() + timedelta(days=days))
 
-def is_employee(user):
-    return user.is_authenticated and user.role == 'employee'
+def _low_stock_qs():
+    return Product.objects.filter(quantity_in_stock__lte=F('reorder_level'))
 
+def _inventory_value_qs(qs=None):
+    qs = qs or Product.objects.all()
+    return qs.aggregate(total=Sum(F('quantity_in_stock') * F('unit_price')))['total'] or 0
 
 def public_home(request):
-    return render(request, 'inventory/home.html')
+    return render(request, "inventory/public_home.html")
+
+def format_inventory_value(val):
+    if val is None:
+        return "0"
+    if val >= 1_000_000:
+        return f"{val/1_000_000:.1f}M"
+    elif val >= 1_000:
+        return f"{val/1_000:.1f}K"
+    return str(int(val))
+
 
 
 '''ADMIN LOGICS (DASHBOARD)'''
-@login_required
-@user_passes_test(is_admin)
 def admin_dashboard(request):
-    low_stock_products = Product.objects.filter(quantity_in_stock__lte=F('reorder_level'))
-    near_expiry_products = Product.objects.filter(expiry_date__lte=timezone.now().date() + timedelta(days=30))
+    products = Product.objects.all()
+    low_stock = products.filter(quantity_in_stock__lte=F('reorder_level'))
+    near_expiry = products.filter(expiry_date__lte=timezone.now().date() + timedelta(days=30))
 
-    category_data = (
-        Product.objects.values('category__name')
-        .annotate(total_quantity=Sum('quantity_in_stock'))
-        .order_by('category__name')
-    )
+    # FULL metrics
+    metrics = {
+        'total_products': products.count(),
+        'low_stock': low_stock.count(),
+        'near_expiry': near_expiry.count(),
+        'inventory_value': sum(p.quantity_in_stock * p.unit_price for p in products),
+        'total_suppliers': Supplier.objects.count(),
+        'total_categories': Category.objects.count(),
+    }
 
-    category_labels = [item['category__name'] for item in category_data]
-    category_values = [item['total_quantity'] for item in category_data]
+    # Category chart
+    by_category = products.values('category__name').annotate(qty=Sum('quantity_in_stock'))
+    cat_labels = [c['category__name'] for c in by_category]
+    cat_qty = [c['qty'] for c in by_category]
 
-    low_stock_count = Product.objects.filter(quantity_in_stock__lte=F('reorder_level')).count()
-    in_stock_count = Product.objects.filter(quantity_in_stock__gt=F('reorder_level')).count()
+    # Stock chart counts
+    low_count = low_stock.count()
+    ok_count = products.filter(quantity_in_stock__gt=F('reorder_level')).count()
 
-    employees = (
-        User.objects.filter(role='employee')
-        .annotate(product_count=Count('assigned_products'))
-        .order_by('username')
-    )
-
-    user_labels = [e.username for e in employees]
-    user_counts = [e.product_count for e in employees]
+    # Users chart
+    employees = User.objects.filter(role='employee')
+    user_labels = [e.get_full_name() or e.username for e in employees]
+    user_counts = [e.categories_assigned.count() for e in employees]
 
     context = {
-        'low_stock_count': low_stock_products.count(),
-        'near_expiry_count': near_expiry_products.count(),
-        'low_stock_products': low_stock_products[:5],
-        'near_expiry_products': near_expiry_products[:5],
-        'category_labels': category_labels,
-        'category_values': category_values,
-        'low_stock_count_chart': low_stock_count,
-        'in_stock_count_chart': in_stock_count,
+        'metrics': metrics,
+        'low_list': low_stock[:6],
+        'exp_list': near_expiry[:6],
         'employees': employees,
-        'user_labels': user_labels,
-        'user_counts': user_counts,
+
+        # Charts data as JSON
+        'cat_labels': json.dumps(cat_labels),
+        'cat_qty': json.dumps(cat_qty),
+        'low_count': low_count,
+        'ok_count': ok_count,
+        'user_labels': json.dumps(user_labels),
+        'user_counts': json.dumps(user_counts),
     }
     return render(request, 'inventory/admin_dashboard.html', context)
-
-
 
 @login_required
 @user_passes_test(is_employee)
 def employee_dashboard(request):
-    return render(request, 'inventory/employee_dashboard.html')
+    my_categories = Category.objects.filter(assigned_to=request.user)
+
+    my_products = Product.objects.select_related('category') \
+                                 .filter(category__in=my_categories)
+
+    q = request.GET.get('q') or ''
+    cat_id = request.GET.get('cat')
+    if q:
+        my_products = my_products.filter(
+            Q(name__icontains=q) |
+            Q(batch_number__icontains=q) |
+            Q(category__name__icontains=q)
+        )
+    if cat_id:
+        my_products = my_products.filter(category_id=cat_id)
+
+    low_stock = my_products.filter(quantity_in_stock__lte=F('reorder_level'))
+    near_expiry = my_products.filter(expiry_date__lte=timezone.now().date() + timedelta(days=30))
+
+    metrics = {
+        'assigned_products': my_products.count(),
+        'my_low_stock': low_stock.count(),
+        'my_near_expiry': near_expiry.count(),
+        'my_inventory_value': format_inventory_value(_inventory_value_qs(my_products)),
+        'suppliers_count': Supplier.objects.filter(products__in=my_products).distinct().count(),
+    }
+
+    by_category = (my_products.values('category__name')
+                   .annotate(qty=Sum('quantity_in_stock'))
+                   .order_by('category__name'))
+    cat_labels = [c['category__name'] for c in by_category]
+    cat_qty = [c['qty'] for c in by_category]
+
+    low_count = low_stock.count()
+    ok_count = my_products.filter(quantity_in_stock__gt=F('reorder_level')).count()
+
+    context = {
+        'metrics': metrics,
+        'low_list': low_stock[:6],
+        'exp_list': near_expiry[:6],
+        'cat_labels': json.dumps(cat_labels),
+        'cat_qty': json.dumps(cat_qty),
+        'low_count': low_count,
+        'ok_count': ok_count,
+        'my_products': my_products.order_by('category__name', 'name'),
+        'my_categories': my_categories.order_by('name'),
+        'q': q,
+        'selected_cat': int(cat_id) if cat_id else None,
+    }
+    return render(request, 'inventory/employee_dashboard.html', context)
+
+
 
 
 '''CATEGORY LOGICS (CRUD)'''
@@ -162,14 +235,16 @@ def supplier_delete(request, pk):
 
 '''PRODUCTS LOGICS (CRUD)'''
 @login_required
+@user_passes_test(is_staffer)
 def product_list(request):
     products = Product.objects.select_related('category').prefetch_related('suppliers')
 
-    query = request.GET.get('q', '')
+    query = request.GET.get('q', '').strip()
     category_id = request.GET.get('category')
     supplier_id = request.GET.get('supplier')
     expiry = request.GET.get('expiry')
     low_stock = request.GET.get('low_stock')
+    view_mode = request.GET.get('view', 'card')
 
     if query:
         products = products.filter(name__icontains=query)
@@ -189,11 +264,30 @@ def product_list(request):
     if low_stock == '1':
         products = products.filter(quantity_in_stock__lte=F('reorder_level'))
 
+    products = products.distinct()
+
+    paginator = Paginator(products, 8)
+    page_number = request.GET.get('page')
+    try:
+        products_page = paginator.page(page_number)
+    except PageNotAnInteger:
+        products_page = paginator.page(1)
+    except EmptyPage:
+        products_page = paginator.page(paginator.num_pages)
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    base_qs = params.urlencode()  
+
     categories = Category.objects.all()
     suppliers = Supplier.objects.all()
 
     context = {
-        'products': products.distinct(),
+        'products': products_page,     
+        'page_obj': products_page,
+        'paginator': paginator,
+        'is_paginated': products_page.has_other_pages(),
+        'view_mode': view_mode,
         'categories': categories,
         'suppliers': suppliers,
         'query': query,
@@ -201,12 +295,12 @@ def product_list(request):
         'selected_supplier': supplier_id,
         'expiry': expiry,
         'low_stock': low_stock,
+        'base_qs': base_qs,             
     }
     return render(request, 'inventory/product_list.html', context)
 
-
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_staffer)
 def product_create(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
@@ -218,7 +312,7 @@ def product_create(request):
     return render(request, 'inventory/product_form.html', {'form': form, 'title': 'Create Product'})
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_staffer)
 def product_update(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':
@@ -240,21 +334,73 @@ def product_delete(request, pk):
         return redirect('inventory:product_list')
     return render(request, 'inventory/product_confirm_delete.html', {'product': product})
 
+
+@login_required
+@user_passes_test(is_admin)
+def send_test_email(request):
+    low_stock, near_expiry = get_inventory_alerts()
+
+    # Build email (plain + HTML)
+    subject = "StockMed Alerts"
+    ctx = {"low_stock": low_stock, "near_expiry": near_expiry}
+    text_body = []
+    if low_stock.exists():
+        text_body.append("Low Stock:")
+        text_body += [f"- {p.name} (Qty: {p.quantity_in_stock}, Reorder: {p.reorder_level})" for p in low_stock]
+        text_body.append("")
+    else:
+        text_body.append("No low stock items.")
+        text_body.append("")
+    if near_expiry.exists():
+        text_body.append("Expiring ≤30 days:")
+        text_body += [f"- {p.name} (Expiry: {p.expiry_date})" for p in near_expiry]
+    else:
+        text_body.append("No items near expiry.")
+
+    to_email = settings.MANAGER_ALERT_EMAIL or request.user.email
+    try:
+        html_body = render_to_string("emails/alerts.html", ctx) if False else None
+
+        if html_body:
+            msg = EmailMultiAlternatives(subject, "\n".join(text_body),
+                                         settings.DEFAULT_FROM_EMAIL, [to_email])
+            msg.attach_alternative(html_body, "text/html")
+            msg.send()
+        else:
+            # plain text only
+            from django.core.mail import send_mail
+            send_mail(subject, "\n".join(text_body),
+                      settings.DEFAULT_FROM_EMAIL, [to_email], fail_silently=False)
+
+        messages.success(request, f"Email sent to {to_email}.")
+    except Exception as e:
+        messages.error(request, f"Failed to send email: {e}")
+
+    return redirect("inventory:admin_dashboard")
+
 @login_required
 @user_passes_test(is_admin)
 def trigger_email_alerts(request):
-    low_stock = Product.objects.filter(quantity_in_stock__lte=F('reorder_level'))
-    expiring = Product.objects.filter(expiry_date__lte=timezone.now().date() + timedelta(days=30))
+    low_stock = _low_stock_qs()
+    expiring = _near_expiry_qs()
 
+    sent_total = 0
     if low_stock.exists():
-        message = "\n".join([f"{p.name} (Qty: {p.quantity_in_stock})" for p in low_stock])
-        send_inventory_alert(" Low Stock Alert", message, [request.user.email])
+        body = "Low Stock Items:\n" + "\n".join(
+            f"- {p.name} (Qty: {p.quantity_in_stock}, Reorder: {p.reorder_level})" for p in low_stock[:100]
+        )
+        sent_total += send_inventory_alert("StockMed: Low Stock Alert", body)
 
     if expiring.exists():
-        message = "\n".join([f"{p.name} (Expires: {p.expiry_date})" for p in expiring])
-        send_inventory_alert(" Expiry Alert", message, [request.user.email])
+        body = "Expiring ≤30 days:\n" + "\n".join(
+            f"- {p.name} (Expires: {p.expiry_date})" for p in expiring[:100]
+        )
+        sent_total += send_inventory_alert("StockMed: Expiry Alert", body)
 
-    messages.success(request, "Email alerts triggered manually.")
+    if sent_total:
+        messages.success(request, f"Alerts sent ({sent_total}).")
+    else:
+        messages.info(request, "No alerts to send (nothing low or expiring).")
     return redirect('inventory:admin_dashboard')
 
 
