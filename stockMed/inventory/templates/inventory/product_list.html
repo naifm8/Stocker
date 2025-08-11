@@ -109,7 +109,6 @@
     {% if view_mode %}<input type="hidden" name="view" value="{{ view_mode }}">{% endif %}
   </form>
 
-  {# -------- CARD VIEW (default) -------- #}
   {% if view_mode != 'list' %}
     <div class="row g-4">
       {% for p in products %}
@@ -159,7 +158,6 @@
     </div>
 
   {% else %}
-  {# -------- LIST VIEW -------- #}
     <div class="card shadow-sm border-0">
       <div class="table-responsive">
         <table class="table align-middle mb-0">
@@ -225,7 +223,6 @@
   <nav aria-label="Products pages" class="mt-4">
     <ul class="sm-pager">
   
-      {# « Prev #}
       {% if page_obj.has_previous %}
         <li class="sm-page">
           <a href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">«</a>
@@ -245,7 +242,6 @@
         {% endif %}
       {% endfor %}
   
-      {# » Next #}
       {% if page_obj.has_next %}
         <li class="sm-page">
           <a href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">»</a>
@@ -257,8 +253,6 @@
     </ul>
   </nav>
   {% endif %}
-  
-  
 
 </div>
 {% endblock %}

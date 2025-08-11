@@ -4,7 +4,7 @@ from .views import CustomLoginView, logout_view, RegisterView, edit_member, dele
 app_name = 'accounts'
 
 urlpatterns = [
-    # Authentication pages
+    # authentication pages
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', logout_view, name='logout'),
     path('register/', RegisterView.as_view(), name='register'),

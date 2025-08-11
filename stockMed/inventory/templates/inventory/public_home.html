@@ -23,10 +23,9 @@
     padding: clamp(24px, 5vw, 56px);
     text-align: center; color: #fff;
   }
-  /* Headline & paragraph shifted higher */
   .hero-text {
-    margin-top: 8vh; /* pushes content up */
-    margin-bottom: 48px; /* space before CTA */
+    margin-top: 8vh; 
+    margin-bottom: 48px; 
   }
   .hero-heading { 
     font-weight: 800; 
@@ -40,13 +39,13 @@
   }
   .hero-cta { 
     display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
-    margin-bottom: 48px; /* space before features */
+    margin-bottom: 48px; 
   }
 
-  /* Feature cards moved just below center */
+  
   .feature-bar {
     position: absolute; left: 0; right: 0;
-    top: 60%; /* slightly below center */
+    top: 60%; 
     
     z-index: 2;
   }
@@ -69,7 +68,6 @@
   .feature-card h5 { margin-bottom: 6px; font-weight: 700; }
   .feature-card p { margin: 0; opacity: .8; }
 
-  /* Mobile stacking */
   @media (max-width: 991px) {
     .feature-bar { position: static; transform: none; top: auto; margin-top: 16px; }
     .feature-grid { grid-template-columns: 1fr; }
@@ -94,7 +92,6 @@
       <a href="{% url 'accounts:register' %}" class="btn btn-outline-light btn-lg px-4">Register</a>
     </div>
 
-    <!-- Features moved up -->
     <div class="feature-bar">
       <div class="feature-wrap">
         <div class="feature-grid">
@@ -113,7 +110,7 @@
         </div>
       </div>
     </div>
-    <!-- /feature-bar -->
+
   </div>
 </section>
 {% endblock %}

@@ -7,7 +7,6 @@ def export_products_to_csv(products):
     output = StringIO()
     writer = csv.writer(output)
 
-    # Header row
     writer.writerow([
         'name', 'category', 'suppliers', 'batch_number',
         'quantity_in_stock', 'reorder_level', 'unit_price', 'expiry_date'
@@ -32,7 +31,6 @@ def import_products_from_csv(file):
         try:
             category, _ = Category.objects.get_or_create(name=row['category'])
 
-            # Create Product (or update if exists by name and batch_number)
             product, created = Product.objects.get_or_create(
                 name=row['name'],
                 batch_number=row['batch_number'],

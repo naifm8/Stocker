@@ -8,7 +8,7 @@ from .utils import send_inventory_alert
 from django.contrib import messages
 from django.http import HttpResponse
 from .utils_csv import export_products_to_csv, import_products_from_csv
-from django.db.models import Count, Sum, F, Prefetch, Q
+from django.db.models import Sum, F, Q
 from accounts.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import json
@@ -50,7 +50,6 @@ def admin_dashboard(request):
     low_stock = products.filter(quantity_in_stock__lte=F('reorder_level'))
     near_expiry = products.filter(expiry_date__lte=timezone.now().date() + timedelta(days=30))
 
-    # FULL metrics
     metrics = {
         'total_products': products.count(),
         'low_stock': low_stock.count(),
@@ -340,7 +339,6 @@ def product_delete(request, pk):
 def send_test_email(request):
     low_stock, near_expiry = get_inventory_alerts()
 
-    # Build email (plain + HTML)
     subject = "StockMed Alerts"
     ctx = {"low_stock": low_stock, "near_expiry": near_expiry}
     text_body = []
@@ -367,7 +365,6 @@ def send_test_email(request):
             msg.attach_alternative(html_body, "text/html")
             msg.send()
         else:
-            # plain text only
             from django.core.mail import send_mail
             send_mail(subject, "\n".join(text_body),
                       settings.DEFAULT_FROM_EMAIL, [to_email], fail_silently=False)
