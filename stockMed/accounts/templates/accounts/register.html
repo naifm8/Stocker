@@ -1,71 +1,112 @@
-{% extends 'public_base.html' %}
 {% load static %}
-{% block title %}Register | StockMed{% endblock %}
+{% load form_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Register | StockMed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root{
+      --accent:#20c997; --muted:#6c757d; --pill-bg:#f4f4f4c2; --radius:20px;
+    }
+    body,html{height:100%;}
+    .auth-wrap{ min-height:100vh; display:grid; grid-template-columns: 1.3fr 1fr; }
+    .auth-left{ padding:48px clamp(24px,4vw,64px); background:#fff; display:flex; align-items:center; justify-content:center; }
+    .auth-card{ max-width:560px; width:100%; }
+    .brand{ position:absolute; top:24px; left:24px; display:flex; align-items:center; gap:.6rem; font-weight:700; color:#2b2f36; }
+    .brand img{ width:32px; height:32px; }
+    h1{ font-weight:800; color:#222; margin-bottom:.25rem; font-size: clamp(26px, 4.2vw, 44px);}
+    .sub{ color:var(--muted); margin-bottom:18px; }
+    .pill-input{ background:var(--pill-bg); border:none; height:54px; border-radius:999px; padding:0 20px; }
+    .pill-input:focus{ box-shadow:none; outline:2px solid rgba(255, 255, 255, 0.25); background:#ededed; }
+    .btn-primary{ background:linear-gradient(90deg, #000000, #232323); border:none; height:54px; border-radius:999px; font-weight:700; }
+    .auth-right{
+      position:relative; overflow:hidden;
+      background: radial-gradient(1200px 600px at 80% 50%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%),
+                  linear-gradient(160deg,#0c0c0c 0%, #0c0c0c 100%);
+      color:#fff; display:flex; align-items:center; justify-content:center; padding:40px;
+    }
+    .panel{ max-width:440px; text-align:center; }
+    .panel h2{ font-weight:800; font-size: clamp(24px,3.6vw,40px); margin-bottom:10px;}
+    .panel p{ opacity:.95; margin-bottom:24px; font-size:1.05rem; }
+    .panel .btn{ background:#fff; color:#111; border-radius:999px; padding:.8rem 2.2rem; font-weight:700; border:0; }
+    .close-x{ position:absolute; top:18px; right:18px; color:#fff; opacity:.85; }
+    .errorlist{ color:#dc3545; list-style:none; padding-left:0; margin:.5rem 0 0 0;}
+    @media (max-width: 992px){
+      .auth-wrap{ grid-template-columns: 1fr; }
+      .auth-right{ order:-1; min-height:34vh; border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);}
+      .brand{ position:static; margin-bottom:18px;}
+    }
 
-{% block content %}
-<style>
-  .auth-wrap {
-    min-height: 100vh; display:flex; align-items:center; justify-content:center;
-    background: url("{% static 'images/hero-med.jpg' %}") center/cover no-repeat fixed;
-    position: relative;
-  }
-  .auth-overlay { position:absolute; inset:0; background:rgba(0,0,0,.45); }
-  .auth-card {
-    position: relative; z-index: 2;
-    width: 100%; max-width: 520px;
-    background: rgba(255,255,255,.95);
-    border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,.25);
-    padding: 28px;
-  }
-</style>
+    input[type="file"]{ background:#f8faf9; border-radius:16px; padding:.6rem; }
+  </style>
+</head>
+<body>
+  <div class="auth-wrap">
 
-<div class="auth-wrap">
-  <div class="auth-overlay"></div>
 
-  <div class="auth-card">
-    <h3 class="mb-2 text-center">Create an account</h3>
-    <p class="text-muted text-center mb-4">Join StockMed to manage medical inventory</p>
+    <section class="auth-right">
+      <a class="close-x" href="{% url 'inventory:home' %}"><i class="bi bi-x-lg fs-5"></i></a>
+      <div class="panel">
+        <h2>Welcome Back?</h2>
+        <p>Already have an account? Sign in to continue your work.</p>
+        <a href="{% url 'accounts:login' %}" class="btn">Sign In</a>
+      </div>
+    </section>
 
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div class="mb-3">
-          {{ form.username.label_tag }}
-          {{ form.username }}
-      </div>
-  
-      <div class="mb-3">
-          {{ form.email.label_tag }}
-          {{ form.email }}
-      </div>
-  
-      <div class="mb-3">
-          {{ form.role.label_tag }}
-          {{ form.role }}
-      </div>
-  
-      <div class="mb-3">
-          {{ form.profile_image.label_tag }}
-          {{ form.profile_image }}
-      </div>
-  
-      <div class="mb-3">
-          {{ form.password1.label_tag }}
-          {{ form.password1 }}
-      </div>
-  
-      <div class="mb-3">
-          {{ form.password2.label_tag }}
-          {{ form.password2 }}
-      </div>
-  
-      <button type="submit" class="btn btn-primary">Register</button>
-  </form>
-  
 
-    <div class="text-center mt-3">
-      <small class="text-muted">Already have an account?</small>
-      <a href="{% url 'accounts:login' %}">Login</a>
-    </div>
+    <section class="auth-left position-relative">
+      <div class="brand d-none d-lg-flex">
+       StockMed
+      </div>
+
+      <div class="auth-card">
+        <h1>Create Your Account</h1>
+        <div class="sub">Join StockMed to manage inventory with ease</div>
+
+        {% if form.errors %}
+          <div class="alert alert-danger">Please fix the errors below.</div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" action="{% url 'accounts:register' %}">
+          {% csrf_token %}
+
+          <div class="row g-3">
+            <div class="col-12">
+              {{ form.username.label_tag }} 
+              {{ form.username|add_class:"form-control pill-input" }}
+            </div>
+            <div class="col-12">
+              {{ form.email.label_tag }}
+              {{ form.email|add_class:"form-control pill-input" }}
+            </div>
+            <div class="col-12">
+              {{ form.role.label_tag }}
+              {{ form.role|add_class:"form-select pill-input" }}
+            </div>
+            <div class="col-12">
+              {{ form.profile_image.label_tag }}
+              {{ form.profile_image }}
+            </div>
+            <div class="col-12">
+              {{ form.password1.label_tag }}
+              {{ form.password1|add_class:"form-control pill-input" }}
+            </div>
+            <div class="col-12">
+              {{ form.password2.label_tag }}
+              {{ form.password2|add_class:"form-control pill-input" }}
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-100 mt-3" type="submit">Sign Up</button>
+        </form>
+      </div>
+    </section>
   </div>
-</div>
-{% endblock %}
+
+  {# If you don't have add_class filter, remove |add_class and ensure your form __init__ sets classes. #}
+</body>
+</html>

@@ -1,56 +1,140 @@
-{% extends 'public_base.html' %}
 {% load static %}
-{% block title %}Login | StockMed{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Login | StockMed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root{
+      --accent:#20c997;
+      --dark:#111;
+      --muted:#6c757d;
+      --pill-bg:#e9e9e9d3;
+      --radius:20px;
+    }
+    body,html{height:100%;}
+    .auth-wrap{
+      min-height:100vh; display:grid; grid-template-columns: 1.3fr 1fr;
+    }
+    .auth-left{
+      padding:48px clamp(24px,4vw,64px);
+      background:#fff;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .auth-card{ max-width:520px; width:100%; }
+    .brand{
+      position:absolute; top:24px; left:24px; display:flex; align-items:center; gap:.6rem;
+      font-weight:700; color:#2b2f36;
+    }
+    .brand img{ width:32px; height:32px; }
+    h1{
+      font-weight:800; letter-spacing:.2px; color:#222; margin-bottom:.25rem;
+      font-size: clamp(26px, 4.2vw, 48px);
+    }
+    .sub{ color:var(--muted); margin-bottom:18px; }
+    .socials{ display:flex; gap:16px; margin:10px 0 22px; }
+    .social-btn{
+      width:48px; height:48px; display:flex; align-items:center; justify-content:center;
+      border-radius:50%; color:#fff; border:none;
+    }
+    .fb{background:#3b5998;} .g{background:#db4a39;} .in{background:#3b4d65;}
+    .divider{ display:flex; align-items:center; gap:10px; color:#adb5bd; margin:12px 0 18px; }
+    .divider::before,.divider::after{ content:""; height:1px; background:#e9ecef; flex:1; }
+    .pill-input{
+      background:var(--pill-bg); border:none; height:54px; border-radius:999px; padding:0 52px 0 20px;
+    }
+    .pill-input:focus{ box-shadow:none; outline:2px solid rgba(32,201,151,.25); background:#e4e4e4d3; }
+    .field{ position:relative; margin-bottom:14px; }
+    .eye{ position:absolute; right:16px; top:50%; transform:translateY(-50%); color:#9aa0a6; cursor:pointer;}
+    .btn-primary{
+      background:linear-gradient(90deg, #000000, #232323); border:none; height:54px; border-radius:999px;
+      font-weight:700; letter-spacing:.3px;
+    }
+    .auth-right{
+      position:relative; overflow:hidden;
+      background: radial-gradient(1200px 600px at 80% 50%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 60%),
+                  linear-gradient(160deg,#0c0c0c 0%, #0c0c0c 100%);
+      color:#fff; display:flex; align-items:center; justify-content:center; padding:40px;
+    }
+    .panel{ max-width:440px; text-align:center; }
+    .panel h2{ font-weight:800; font-size: clamp(24px,3.6vw,40px); margin-bottom:10px;}
+    .panel p{ opacity:.95; margin-bottom:24px; font-size:1.05rem; }
+    .panel .btn{ background:#fff; color:#111; border-radius:999px; padding:.8rem 2.2rem; font-weight:700; border:0; }
+    .close-x{ position:absolute; top:18px; right:18px; color:#fff; opacity:.85; }
+    .errorlist{ color:#dc3545; list-style:none; padding-left:0; margin:.5rem 0 0 0;}
+    @media (max-width: 992px){
+      .auth-wrap{ grid-template-columns: 1fr; }
+      .auth-right{ order:-1; min-height:38vh; border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius);}
+      .brand{ position:static; margin-bottom:18px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-wrap">
 
-{% block content %}
-<style>
-  .auth-wrap {
-    min-height: 100vh; display:flex; align-items:center; justify-content:center;
-    background: url("{% static 'images/hero-med.jpg' %}") center/cover no-repeat fixed;
-    position: relative;
-  }
-  .auth-overlay { position:absolute; inset:0; background:rgba(0,0,0,.45); }
-  .auth-card {
-    position: relative; z-index: 2;
-    width: 100%; max-width: 420px;
-    background: rgba(255,255,255,.95);
-    border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,.25);
-    padding: 28px;
-  }
-</style>
+    <section class="auth-right">
+      <a class="close-x" href="{% url 'inventory:home' %}"><i class="bi bi-x-lg fs-5"></i></a>
+      <div class="panel">
+        <h2>New Here?</h2>
+        <p>Sign up and discover a great amount of new opportunities!</p>
+        <a href="{% url 'accounts:register' %}" class="btn">Sign Up</a>
+      </div>
+    </section>
 
-<div class="auth-wrap">
-  <div class="auth-overlay"></div>
 
-  <div class="auth-card">
-    <h3 class="mb-2 text-center">Welcome back</h3>
-    <p class="text-muted text-center mb-4">Sign in to your StockMed account</p>
-
-    <form method="post" novalidate>
-      {% csrf_token %}
-
-      {% if form.non_field_errors %}
-        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-      {% endif %}
-
-      <div class="mb-3">
-        <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
-        {{ form.username }}
+    <section class="auth-left position-relative">
+      <div class="brand d-none d-lg-flex">
+         StockMed
       </div>
 
-      <div class="mb-3">
-        <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
-        {{ form.password }}
+      <div class="auth-card">
+        <h1>Login to Your Account</h1>
+        <div class="sub">Login using social networks</div>
+
+        <div class="socials">
+          <button class="social-btn fb" type="button"><i class="bi bi-facebook"></i></button>
+          <button class="social-btn g" type="button"><i class="bi bi-google"></i></button>
+          <button class="social-btn in" type="button"><i class="bi bi-linkedin"></i></button>
+        </div>
+
+        <div class="divider">OR</div>
+
+        {% if messages %}
+          {% for m in messages %}
+            <div class="alert alert-{{ m.tags }} py-2">{{ m }}</div>
+          {% endfor %}
+        {% endif %}
+
+        {# Use AuthenticationForm OR manual inputs that Django expects #}
+        <form method="post" action="{% url 'accounts:login' %}">
+          {% csrf_token %}
+          <div class="field">
+            <input type="text" name="username" autocomplete="username" class="form-control pill-input" placeholder="Email or Username" required>
+          </div>
+          <div class="field">
+            <input id="id_password" type="password" name="password" autocomplete="current-password" class="form-control pill-input" placeholder="Password" required>
+            <i class="bi bi-eye-slash eye" id="togglePass"></i>
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Sign In</button>
+        </form>
       </div>
-
-      <button class="btn btn-success w-100 mb-2">Login</button>
-      <a class="btn btn-outline-secondary w-100" href="{% url 'inventory:home' %}">Back to Home</a>
-    </form>
-
-    <div class="text-center mt-3">
-      <small class="text-muted">Don’t have an account?</small>
-      <a href="{% url 'accounts:register' %}">Register</a>
-    </div>
+    </section>
   </div>
-</div>
-{% endblock %}
+
+  <script>
+    const eye = document.getElementById('togglePass');
+    const pwd = document.getElementById('id_password');
+    if (eye && pwd){
+      eye.addEventListener('click', ()=> {
+        const show = pwd.type === 'password';
+        pwd.type = show ? 'text' : 'password';
+        eye.classList.toggle('bi-eye', show);
+        eye.classList.toggle('bi-eye-slash', !show);
+      });
+    }
+  </script>
+</body>
+</html>
